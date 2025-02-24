@@ -1,0 +1,54 @@
+networks:
+  nightingale:
+    driver: bridge
+
+services:
+  mysql:
+    image: registry.cn-guangzhou.aliyuncs.com/hzbb/mysql:8.0.38
+    container_name: mysql
+    hostname: mysql
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: 1234
+    volumes:
+      - ./mysql/data:/var/lib/mysql/
+      - ./mysql/initsql:/docker-entrypoint-initdb.d/
+      - ./mysql/my.cnf:/etc/my.cnf
+    networks:
+      - nightingale
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: registry.cn-guangzhou.aliyuncs.com/hzbb/redis:6.2.6
+    container_name: redis
+    hostname: redis
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+    networks:
+      - nightingale
+    ports:
+      - "6379:6379"
+  nightingale:
+    image: registry.cn-guangzhou.aliyuncs.com/hzbb/nightingale:v8.0.0-beta.2
+    container_name: nightingale
+    hostname: nightingale
+    restart: always
+    environment:
+      GIN_MODE: release
+      TZ: Asia/Shanghai
+      WAIT_HOSTS: mysql:3306, redis:6379
+    volumes:
+      - ./nightingale:/app/etc
+    networks:
+      - nightingale
+    ports:
+      - "17000:17000"
+      - "20090:20090"
+    depends_on:
+      - mysql
+      - redis
+    command: >
+      sh -c "/app/n9e"
